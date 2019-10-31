@@ -58,8 +58,10 @@ func getOIByOkex() {
 	wW.Write(set(symbolW))
 
 	var wg sync.WaitGroup
+	var count int
 
 	for {
+		count++
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
 
@@ -78,14 +80,14 @@ func getOIByOkex() {
 					return
 				}
 
-				var m map[string]string
-				m, ok := price[0].(map[string]string)
+				m, ok := price[0].(map[string]interface{})
 				if !ok {
 					return
 				}
 
 				out := []string{
-					m["price"],
+					fmt.Sprintf("%d", count),
+					fmt.Sprintf("%v", m["price"]),
 					fmt.Sprintf("%d", in.Amount),
 					fmt.Sprintf("%s", in.Timestamp),
 					fmt.Sprintf("%s", time.Now().Format(layout)),
@@ -108,14 +110,14 @@ func getOIByOkex() {
 					return
 				}
 
-				var m map[string]string
-				m, ok := price[0].(map[string]string)
+				m, ok := price[0].(map[string]interface{})
 				if !ok {
 					return
 				}
 
 				out := []string{
-					m["price"],
+					fmt.Sprintf("%d", count),
+					fmt.Sprintf("%v", m["price"]),
 					fmt.Sprintf("%d", in.Amount),
 					fmt.Sprintf("%s", in.Timestamp),
 					fmt.Sprintf("%s", time.Now().Format(layout)),
@@ -166,8 +168,10 @@ func getOIByBitmex() {
 	wz19.Write(set("XBTZ19"))
 
 	var wg sync.WaitGroup
+	var count int
 
 	for {
+		count++
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
 
@@ -186,6 +190,7 @@ func getOIByBitmex() {
 				}
 
 				out := []string{
+					fmt.Sprintf("%d", count),
 					humanize.Ftoa(in[0].MidPrice),
 					fmt.Sprintf("%d", in[0].OpenInterest),
 					fmt.Sprintf("%s", in[0].Timestamp.Format(layout)),
@@ -209,6 +214,7 @@ func getOIByBitmex() {
 				}
 
 				out := []string{
+					fmt.Sprintf("%d", count),
 					humanize.Ftoa(in[0].MidPrice),
 					fmt.Sprintf("%d", in[0].OpenInterest),
 					fmt.Sprintf("%s", in[0].Timestamp.Format(layout)),
@@ -228,7 +234,7 @@ func getOIByBitmex() {
 
 func set(symbol string) []string {
 	return []string{
-		symbol,
+		"index",
 		"price",
 		"oi_vol",
 		"api_time",
