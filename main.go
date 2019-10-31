@@ -36,12 +36,12 @@ func getOIByOkex() {
 	config.I18n = okex.ENGLISH
 	c := okex.NewClient(config)
 
-	fQ, err := os.OpenFile("./okex.oi.csv", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
+	fQ, err := os.OpenFile("./okexQuarterly.oi.csv", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
 	if err != nil {
 		return
 	}
 	defer fQ.Close()
-	fW, err := os.OpenFile("./okex.oi.csv", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
+	fW, err := os.OpenFile("./okexWeekly.oi.csv", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
 	if err != nil {
 		return
 	}
