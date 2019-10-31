@@ -36,18 +36,28 @@ func getOIByOkex() {
 	config.I18n = okex.ENGLISH
 	c := okex.NewClient(config)
 
-	f, err := os.OpenFile("./okex.oi.csv", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
+	fQ, err := os.OpenFile("./okex.oi.csv", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer fQ.Close()
+	fW, err := os.OpenFile("./okex.oi.csv", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0755)
+	if err != nil {
+		return
+	}
+	defer fW.Close()
 
-	w := gocsv.DefaultCSVWriter(f)
+	wQ := gocsv.DefaultCSVWriter(fQ)
+	wW := gocsv.DefaultCSVWriter(fW)
 
-	symbol := "BTC-USD-191227"
+	symbolQ := "BTC-USD-191227"
+	symbolW := "BTC-USD-191101"
 	layout := "2006-01-02T15:04:05.000Z"
 
-	w.Write(set())
+	wQ.Write(set(symbolQ))
+	wW.Write(set(symbolW))
+
+	var wg sync.WaitGroup
 
 	for {
 		ticker := time.NewTicker(30 * time.Second)
@@ -55,32 +65,67 @@ func getOIByOkex() {
 
 		select {
 		case <-ticker.C:
-			in, err := c.GetFuturesInstrumentOpenInterest(symbol)
-			if err != nil {
-				continue
-			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				in, err := c.GetFuturesInstrumentOpenInterest(symbolQ)
+				if err != nil {
+					return
+				}
 
-			price, _ := c.GetFuturesInstrumentTrades(symbol, nil)
-			if len(price) < 1 {
-				continue
-			}
+				price, _ := c.GetFuturesInstrumentTrades(symbolQ, nil)
+				if len(price) < 1 {
+					return
+				}
 
-			var m map[string]string
-			m, ok := price[0].(map[string]string)
-			if !ok {
-				continue
-			}
+				var m map[string]string
+				m, ok := price[0].(map[string]string)
+				if !ok {
+					return
+				}
 
-			out := []string{
-				in.InstrumentId,
-				m["price"],
-				fmt.Sprintf("%d", in.Amount),
-				fmt.Sprintf("%s", in.Timestamp),
-				fmt.Sprintf("%s", time.Now().Format(layout)),
-			}
+				out := []string{
+					m["price"],
+					fmt.Sprintf("%d", in.Amount),
+					fmt.Sprintf("%s", in.Timestamp),
+					fmt.Sprintf("%s", time.Now().Format(layout)),
+				}
 
-			w.Write(out)
-			w.Flush()
+				wQ.Write(out)
+				wQ.Flush()
+			}()
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				in, err := c.GetFuturesInstrumentOpenInterest(symbolW)
+				if err != nil {
+					return
+				}
+
+				price, _ := c.GetFuturesInstrumentTrades(symbolW, nil)
+				if len(price) < 1 {
+					return
+				}
+
+				var m map[string]string
+				m, ok := price[0].(map[string]string)
+				if !ok {
+					return
+				}
+
+				out := []string{
+					m["price"],
+					fmt.Sprintf("%d", in.Amount),
+					fmt.Sprintf("%s", in.Timestamp),
+					fmt.Sprintf("%s", time.Now().Format(layout)),
+				}
+
+				wW.Write(out)
+				wW.Flush()
+			}()
+
+			wg.Wait()
 		}
 	}
 
@@ -117,8 +162,8 @@ func getOIByBitmex() {
 
 	layout := "2006-01-02T15:04:05.000Z"
 
-	wh20.Write(set())
-	wz19.Write(set())
+	wh20.Write(set("XBTH20"))
+	wz19.Write(set("XBTZ19"))
 
 	var wg sync.WaitGroup
 
@@ -141,8 +186,7 @@ func getOIByBitmex() {
 				}
 
 				out := []string{
-					in[0].Symbol,
-					humanize.Commaf(in[0].MidPrice),
+					humanize.Ftoa(in[0].MidPrice),
 					fmt.Sprintf("%d", in[0].OpenInterest),
 					fmt.Sprintf("%s", in[0].Timestamp.Format(layout)),
 					fmt.Sprintf("%s", time.Now().Format(layout)),
@@ -165,8 +209,7 @@ func getOIByBitmex() {
 				}
 
 				out := []string{
-					in[0].Symbol,
-					humanize.Commaf(in[0].MidPrice),
+					humanize.Ftoa(in[0].MidPrice),
 					fmt.Sprintf("%d", in[0].OpenInterest),
 					fmt.Sprintf("%s", in[0].Timestamp.Format(layout)),
 					fmt.Sprintf("%s", time.Now().Format(layout)),
@@ -183,9 +226,9 @@ func getOIByBitmex() {
 
 }
 
-func set() []string {
+func set(symbol string) []string {
 	return []string{
-		"symbol",
+		symbol,
 		"price",
 		"oi_vol",
 		"api_time",
